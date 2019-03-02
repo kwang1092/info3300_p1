@@ -1,0 +1,100 @@
+<html><head>
+    <title>INFO 3300 - Project 1</title>
+    
+    <link href="https://fonts.googleapis.com/css?family=Lato:400,700|Raleway:400,700" rel="stylesheet">
+    
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>    
+</head>
+<body>
+    <svg id="scatterplot" width = "800" height = "500">
+
+    </svg>
+
+   <script>
+
+    let scatter_svg = d3.select("svg#scatterplot");
+    let width = scatter_svg.attr("width");
+    let height = scatter_svg.attr("height");
+    let margin = {"top": 50, "right":20, "bottom":20, "left":60};
+    let chartWidth = width - margin.left - margin.right;
+    let chartHeight = height - margin.top - margin.bottom;
+    var incomeData; 
+    d3.csv("mrc_table6.csv").then(function(data) {
+
+        data.forEach((d,i) => {
+            d["parent_pct"] = Number(d["par_pctile"]);
+            d["tier_numname"] = {tier_number: Number(d["tier"]), tier_name: d["tier_name"]};
+            d["tier_num"] = Number(d["tier"]);
+            d["par_mean_inc"] = Number(d["par_mean"]);
+            d["kMean"] = Number(d['k_mean']);
+            d["kMedian"] = Number(d['k_median']); 
+        });
+
+        incomeData = data.filter(d => d["par_mean_inc"] != 0 && d["par_mean_inc"] < 1000000 && d["par_mean_inc"] > 5000);
+
+        console.log(data);
+
+        const parMeanMin = d3.min(incomeData, d => d["par_mean_inc"]);
+        const parMeanMax = d3.max(incomeData, d => d["par_mean_inc"]);
+        let parMeanScale = d3.scaleLog().domain([parMeanMin + 1,parMeanMax]).range([0,chartWidth]);
+        
+        const kMeanMin = d3.min(incomeData, d => d["kMean"]);
+        const kMeanMax = d3.max(incomeData, d => d["kMean"]);
+        let kMeanScale = d3.scaleLog().domain([kMeanMin +1,kMeanMax + 10000]).range([chartHeight,0]);
+        
+        const tierScale = d3.scaleOrdinal().domain(d3.range(1,14) + [14.1, 14.2]).range(["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf", "#7A001D", "#8891FF", "79D890", "#F8E0CC", "#FFE700", "000000"]);
+    
+        let yGridlines = d3.axisLeft(kMeanScale);
+        let xGridlines = d3.axisBottom(parMeanScale);
+
+        scatter_svg.append("g")
+            .attr("transform","translate(" + (margin.left) + "," + margin.top +")"
+            )
+            .call(yGridlines
+                .tickSize(5)
+                .ticks(10 , d3.format("$0.1s")));
+
+        scatter_svg.append("g")
+            .attr("transform","translate(" + margin.left + "," + (chartHeight + margin.top) + ")")
+            .call (xGridlines
+                .tickSize(5)
+                .ticks(10, d3.format("$0.1s")));
+
+        // let legend = scatter_svg.append("g")
+        //     .selectAll("g")
+        //     .data(tierScale.domain())
+        //     .enter()
+        //     .append("g")
+        //         .attr("class", "legend")
+        //         .attr("transform", function(d, i) {
+        //             let height = legendSize;
+
+
+        //         })
+
+        let scatter = scatter_svg.append("g")
+            .attr("transform","translate(" + margin.left + "," + margin.top +")");
+
+        incomeData.forEach( (d,i) => {
+            let tier = tierScale(d["tier"]);
+            let parMean = parMeanScale(d["par_mean_inc"]);
+            let kMean = kMeanScale(d["kMean"]);
+            let jitter = Math.random()*10 - 5; 
+            let circle = scatter.append("circle")
+                .attr("cx", parMean + jitter)
+                .attr("cy", kMean)
+                .attr("r", 5)
+                .attr("opacity", 0.8)
+                .style("fill",tier);
+        
+
+        });
+        
+    });
+   </script>
+  
+
+</body>
+</html>
